@@ -3,77 +3,39 @@
 /**
  * Module dependencies.
  */
-var should = require('should'),
-    mongoose = require('mongoose'),
-    Category = mongoose.model('Category');
+var mongoose = require('mongoose'),
+    Schema = mongoose.Schema;
 
 /**
- * Unit tests
+ * Validation
  */
-describe('Category Model', function() {
+function validateLength (v) {
+  // a custom validation function for checking string length
+  return v.length <= 15;
+}
 
-    describe('Saving', function() {
-        it('saves new record', function(done) {
-            var category = new Category({
-                name: 'Beverages',
-                description: 'Soft drinks, coffees, teas, beers, and ales'
-            });
-
-            category.save(function(err, saved) {
-                should.not.exist(err);
-                done();
-            });
-        });
-
-        it('throws validation error when name is empty', function(done) {
-            var category = new Category({
-                description: 'Soft drinks, coffees, teas, beers, and ales'
-            });
-
-            category.save(function(err) {
-                should.exist(err);
-                err.errors.name.message.should.equal('name cannot be blank');
-                done();
-            });
-        });
-
-        it('throws validation error when name longer than 15 chars', function(done) {
-            var category = new Category({
-                name: 'Grains/Cereals/Chocolates'
-            });
-
-            category.save(function(err, saved) {
-                should.exist(err);
-                err.errors.name.message.should.equal('name must be 15 chars in length or less');
-                done();
-            });
-        });
-
-        it('throws validation error for duplicate category name', function(done) {
-            var category = new Category({
-                name: 'Beverages'
-            });
-
-            category.save(function(err) {
-                should.not.exist(err);
-
-                var duplicate = new Category({
-                    name: 'Beverages'
-                });
-
-                duplicate.save(function(err) {
-                    err.err.indexOf('$name').should.not.equal(-1);
-                    err.err.indexOf('duplicate key error').should.not.equal(-1);
-                    should.exist(err);
-                    done();
-                });
-            });
-        });
-    });
-
-    afterEach(function(done) {
-        // NB this deletes ALL categories (but is run against a test database)
-        Category.remove().exec();
-        done();
-    });
+/**
+ * Category Schema
+ */
+var CategorySchema = new Schema({
+    created: {          // the property name
+        type: Date,     // types are defined e.g. String, Date, Number - http://mongoosejs.com/docs/guide.html
+        default: Date.now
+    },
+    description: {
+        type: String,
+        default: '',
+        trim: true      // types have specific functions e.g. trim, lowercase, uppercase - http://mongoosejs.com/docs/api.html#schema-string-js
+    },
+    name: {
+        type: String,
+        default: '',
+        trim: true,
+        unique : true,
+        required: 'name cannot be blank',
+        validate: [validateLength, 'name must be 15 chars in length or less'] // wires into our custom validator function - http://mongoosejs.com/docs/api.html#schematype_SchemaType-validate
+    }
 });
+
+// Expose the model to other objects (similar to a 'public' setter).
+mongoose.model('Category', CategorySchema);
